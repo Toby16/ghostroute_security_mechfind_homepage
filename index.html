@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MechFind — Find a Vetted Mechanic Near You | Ghostroute</title>
+<meta name="description" content="MechFind scans verified auto repair shops near your exact location and sorts them by distance. Stop guessing, start finding.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07070a;
+    --bg-soft:#0d0d12;
+    --panel:#101015;
+    --glass:rgba(20,20,26,0.55);
+    --glass-border:rgba(255,255,255,0.08);
+    --glass-highlight:rgba(255,255,255,0.06);
+
+    --ignition:#ff6a1f;
+    --ignition-deep:#c8481a;
+    --rust:#7a2e1c;
+    --verified:#33c56a;
+    --verified-dim:rgba(51,197,106,0.14);
+
+    --text:#f3efe8;
+    --text-dim:#9a99a3;
+    --text-faint:#5f5e68;
+
+    --radius-lg:22px;
+    --radius-md:14px;
+    --radius-sm:9px;
+
+    --display: 'Rajdhani', sans-serif;
+    --body: 'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--body);
+    line-height:1.5;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ambient background */
+  .ambient{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(600px 400px at 15% 10%, rgba(255,106,31,0.10), transparent 60%),
+      radial-gradient(700px 500px at 90% 30%, rgba(122,46,28,0.16), transparent 60%),
+      radial-gradient(900px 600px at 50% 100%, rgba(51,197,106,0.05), transparent 60%);
+    animation: driftBg 22s ease-in-out infinite alternate;
+  }
+  @keyframes driftBg{
+    0%{ filter:brightness(1); }
+    100%{ filter:brightness(1.15); }
+  }
+
+  .grain{
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0.035;
+    background-image:
+      repeating-linear-gradient(0deg, #fff 0 1px, transparent 1px 3px);
+  }
+
+  main, header, footer{ position:relative; z-index:1; }
+
+  a{color:inherit; text-decoration:none;}
+  ul{list-style:none;}
+
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 28px; }
+
+  /* ---------- NAV ---------- */
+  nav.top{
+    position:sticky; top:0; z-index:50;
+    backdrop-filter:blur(16px) saturate(140%);
+    -webkit-backdrop-filter:blur(16px) saturate(140%);
+    background:rgba(7,7,10,0.62);
+    border-bottom:1px solid var(--glass-border);
+  }
+  nav.top .wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    height:68px;
+  }
+  .ghostroute-tag{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.12em;
+    color:var(--text-faint); text-transform:uppercase;
+    display:flex; align-items:center; gap:8px;
+  }
+  .ghostroute-tag .dot{
+    width:6px; height:6px; border-radius:50%; background:var(--ignition);
+    box-shadow:0 0 8px var(--ignition);
+    animation:pulseDot 2s ease-in-out infinite;
+  }
+  @keyframes pulseDot{ 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family:var(--display); font-weight:700; font-size:22px; letter-spacing:0.01em;
+  }
+  .brand .mark{
+    width:34px; height:34px; border-radius:10px;
+    background:linear-gradient(160deg, var(--rust), #3a1409);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; border:1px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 14px rgba(0,0,0,0.5);
+  }
+  .brand span.name{ color:var(--text); }
+  .brand span.find{ color:var(--ignition); }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    font-family:var(--body); font-weight:600; font-size:14.5px;
+    padding:11px 22px; border-radius:999px; border:1px solid transparent;
+    cursor:pointer; transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+    white-space:nowrap;
+  }
+  .btn:focus-visible{ outline:2px solid var(--ignition); outline-offset:3px; }
+  .btn-primary{
+    background:linear-gradient(180deg, #ff7a34, var(--ignition-deep));
+    color:#1a0a02;
+    box-shadow:0 6px 20px rgba(255,106,31,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(255,106,31,0.45); }
+  .btn-ghost{
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    color:var(--text);
+    backdrop-filter:blur(10px);
+  }
+  .btn-ghost:hover{ border-color:rgba(255,255,255,0.2); transform:translateY(-2px); }
+  .btn-sm{ padding:8px 16px; font-size:13px; }
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    padding:88px 0 40px;
+    overflow:hidden;
+  }
+  .hero-grid{
+    display:grid; grid-template-columns:1.05fr 0.95fr; gap:48px; align-items:center;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:12px; letter-spacing:0.08em;
+    color:var(--ignition); text-transform:uppercase;
+    background:rgba(255,106,31,0.08); border:1px solid rgba(255,106,31,0.25);
+    padding:6px 12px; border-radius:999px; margin-bottom:22px;
+  }
+  h1{
+    font-family:var(--display); font-weight:700;
+    font-size:clamp(34px, 4.6vw, 58px);
+    line-height:1.04; letter-spacing:-0.01em;
+    margin-bottom:20px;
+  }
+  h1 .accent{ color:var(--ignition); }
+  .hero p.lead{
+    font-size:clamp(16px, 1.6vw, 18.5px);
+    color:var(--text-dim); max-width:520px; margin-bottom:32px;
+  }
+  .hero-ctas{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:30px; }
+  .hero-note{
+    font-family:var(--mono); font-size:12.5px; color:var(--text-faint);
+    display:flex; align-items:center; gap:10px;
+  }
+  .hero-note .badge-free{
+    background:var(--verified-dim); color:var(--verified);
+    border:1px solid rgba(51,197,106,0.3);
+    padding:3px 9px; border-radius:6px; font-weight:700; font-size:11.5px;
+  }
+
+  /* ---------- RADAR (signature element) ---------- */
+  .radar-stage{
+    position:relative; width:100%; aspect-ratio:1/1; max-width:440px; margin:0 auto;
+  }
+  .radar-frame{
+    position:absolute; inset:0; border-radius:50%;
+    background:radial-gradient(circle at 50% 50%, #0d1210 0%, #060706 68%, #030302 100%);
+    border:1px solid rgba(255,140,60,0.18);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.02),
+      0 30px 80px rgba(0,0,0,0.65),
+      inset 0 0 60px rgba(255,106,31,0.05);
+    overflow:hidden;
+  }
+  .radar-rings{ position:absolute; inset:0; }
+  .radar-rings i{
+    position:absolute; border:1px solid rgba(255,140,60,0.14); border-radius:50%;
+  }
+  .radar-rings i:nth-child(1){ inset:8%; }
+  .radar-rings i:nth-child(2){ inset:24%; }
+  .radar-rings i:nth-child(3){ inset:40%; }
+  .radar-rings i:nth-child(4){ inset:56%; }
+  .radar-cross{ position:absolute; inset:0; }
+  .radar-cross::before, .radar-cross::after{
+    content:''; position:absolute; background:rgba(255,140,60,0.10);
+  }
+  .radar-cross::before{ top:0; bottom:0; left:50%; width:1px; }
+  .radar-cross::after{ left:0; right:0; top:50%; height:1px; }
+
+  .radar-sweep{
+    position:absolute; inset:0; border-radius:50%;
+    background:conic-gradient(from 0deg, rgba(255,138,60,0.55), rgba(255,138,60,0.10) 26deg, transparent 70deg);
+    animation:sweepSpin 6s linear infinite;
+    mix-blend-mode:screen;
+  }
+  @keyframes sweepSpin{ to{ transform:rotate(360deg); } }
+
+  .radar-core{
+    position:absolute; top:50%; left:50%; width:14px; height:14px;
+    transform:translate(-50%,-50%); border-radius:50%;
+    background:var(--ignition); box-shadow:0 0 18px 4px rgba(255,106,31,0.7);
+    z-index:3;
+  }
+
+  .pin{ position:absolute; z-index:4; transform:translate(-50%,-50%); }
+  .pin .dot{
+    width:8px; height:8px; border-radius:50%; background:var(--verified);
+    box-shadow:0 0 10px rgba(51,197,106,0.8);
+    animation:dotPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes dotPulse{ 0%,100%{opacity:0.55; transform:scale(0.9);} 50%{opacity:1; transform:scale(1.15);} }
+
+  .pin .tag{
+    position:absolute; bottom:14px; left:50%; transform:translateX(-50%) translateY(4px);
+    display:flex; gap:6px; align-items:center;
+    background:var(--glass); border:1px solid var(--glass-border);
+    backdrop-filter:blur(8px);
+    padding:4px 8px; border-radius:8px; white-space:nowrap;
+    font-family:var(--mono); font-size:10.5px; opacity:0;
+    animation:pinPing 6s ease-in-out infinite;
+  }
+  .tag .km{ color:var(--ignition); font-weight:700; }
+  .tag .rating{ color:var(--verified); font-weight:700; }
+  @keyframes pinPing{
+    0%{ opacity:0; transform:translateX(-50%) translateY(8px); }
+    4%{ opacity:1; transform:translateX(-50%) translateY(0); }
+    9%{ opacity:1; }
+    20%{ opacity:0; transform:translateX(-50%) translateY(0); }
+    100%{ opacity:0; }
+  }
+
+  .radar-label{
+    position:absolute; top:14px; left:0; right:0; text-align:center;
+    font-family:var(--mono); font-size:10.5px; letter-spacing:0.14em;
+    color:rgba(255,180,130,0.55); text-transform:uppercase; z-index:5;
+  }
+  .radar-label .lit{ color:var(--ignition); }
+
+  /* ---------- SECTIONS shared ---------- */
+  section{ padding:80px 0; }
+  .section-head{ max-width:640px; margin-bottom:48px; }
+  .section-head .eyebrow{ margin-bottom:14px; }
+  h2{
+    font-family:var(--display); font-weight:700;
+    font-size:clamp(26px, 3vw, 36px); letter-spacing:-0.01em; margin-bottom:12px;
+  }
+  .section-head p{ color:var(--text-dim); font-size:16px; }
+
+  /* reveal on scroll */
+  .reveal{ opacity:0; transform:translateY(22px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .steps{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:22px;
+  }
+  .step{
+    background:var(--glass); border:1px solid var(--glass-border);
+    backdrop-filter:blur(14px) saturate(130%);
+    border-radius:var(--radius-lg); padding:28px 26px;
+    position:relative; overflow:hidden;
+  }
+  .step::after{
+    content:''; position:absolute; inset:0; border-radius:inherit; padding:1px;
+    background:linear-gradient(160deg, rgba(255,255,255,0.12), transparent 40%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none;
+  }
+  .step .num{
+    font-family:var(--mono); font-size:13px; color:var(--ignition);
+    background:rgba(255,106,31,0.1); border:1px solid rgba(255,106,31,0.28);
+    width:30px; height:30px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center; margin-bottom:18px;
+  }
+  .step h3{ font-family:var(--display); font-size:20px; font-weight:700; margin-bottom:8px; }
+  .step p{ color:var(--text-dim); font-size:14.5px; }
+
+  /* ---------- FEATURES ---------- */
+  .features{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:18px;
+  }
+  .feature{
+    background:var(--glass); border:1px solid var(--glass-border);
+    backdrop-filter:blur(14px);
+    border-radius:var(--radius-md); padding:22px 20px;
+    transition:transform .25s ease, border-color .25s ease;
+  }
+  .feature:hover{ transform:translateY(-4px); border-color:rgba(255,140,60,0.3); }
+  .feature .ic{ font-size:22px; margin-bottom:12px; display:block; }
+  .feature h4{ font-size:15.5px; font-weight:700; margin-bottom:6px; }
+  .feature p{ font-size:13.5px; color:var(--text-dim); }
+
+  /* ---------- PRICING STRIP ---------- */
+  .price-strip{
+    display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;
+    background:linear-gradient(120deg, rgba(255,106,31,0.09), rgba(122,46,28,0.06));
+    border:1px solid rgba(255,140,60,0.22);
+    backdrop-filter:blur(16px);
+    border-radius:var(--radius-lg); padding:28px 32px;
+  }
+  .price-strip .left{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .price-tag{
+    font-family:var(--mono); font-size:22px; font-weight:700; color:var(--ignition);
+  }
+  .price-tag small{ font-size:13px; color:var(--text-faint); font-weight:500; }
+  .free-pill{
+    font-family:var(--mono); font-size:11.5px; text-transform:uppercase; letter-spacing:0.05em;
+    background:var(--verified-dim); color:var(--verified); border:1px solid rgba(51,197,106,0.3);
+    padding:5px 10px; border-radius:6px; font-weight:700;
+  }
+  .price-strip p{ color:var(--text-dim); font-size:14.5px; max-width:380px; }
+
+  /* ---------- PREVIEW MOCK CARDS ---------- */
+  .preview{
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+  }
+  .mock-card{
+    background:var(--glass); border:1px solid var(--glass-border);
+    backdrop-filter:blur(14px);
+    border-radius:var(--radius-md); padding:18px 20px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .mock-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .mock-top h5{ font-size:15px; font-weight:700; }
+  .mock-km{
+    font-family:var(--mono); font-size:11.5px; color:var(--ignition);
+    background:rgba(255,106,31,0.1); border:1px solid rgba(255,106,31,0.25);
+    padding:3px 8px; border-radius:6px; white-space:nowrap;
+  }
+  .mock-meta{ display:flex; gap:8px; flex-wrap:wrap; }
+  .mock-pill{
+    font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px;
+    background:rgba(255,255,255,0.05); color:var(--text-faint); border:1px solid var(--glass-border);
+  }
+  .mock-pill.verified{ color:var(--verified); background:var(--verified-dim); border-color:rgba(51,197,106,0.3); }
+  .mock-addr{ font-size:12.5px; color:var(--text-faint); }
+  .mock-rating{ font-family:var(--mono); font-size:12.5px; color:#e0b34a; }
+  .mock-actions{ display:flex; gap:10px; margin-top:6px; }
+  .mock-actions .btn{ flex:1; padding:9px 0; font-size:12.5px; }
+  .mock-actions .btn-ghost{ pointer-events:none; opacity:0.85; }
+  .mock-actions .btn-primary{ pointer-events:none; opacity:0.92; }
+
+  .preview-note{
+    grid-column:1/-1; font-family:var(--mono); font-size:11.5px; color:var(--text-faint);
+    text-align:center; padding-top:6px;
+  }
+
+  /* ---------- FINAL CTA ---------- */
+  .final-cta{
+    text-align:center;
+    background:var(--glass); border:1px solid var(--glass-border);
+    backdrop-filter:blur(18px) saturate(140%);
+    border-radius:28px; padding:64px 32px;
+    position:relative; overflow:hidden;
+  }
+  .final-cta::before{
+    content:''; position:absolute; width:420px; height:420px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,106,31,0.18), transparent 70%);
+    top:-160px; left:50%; transform:translateX(-50%);
+    animation:driftBg 10s ease-in-out infinite alternate;
+  }
+  .final-cta h2{ position:relative; margin-bottom:14px; }
+  .final-cta p{ position:relative; color:var(--text-dim); max-width:480px; margin:0 auto 30px; }
+  .final-cta .btn{ position:relative; }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    border-top:1px solid var(--glass-border); padding:36px 0; margin-top:20px;
+  }
+  footer .wrap{
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;
+  }
+  footer p{ font-size:13px; color:var(--text-faint); }
+  .suite-dots{ display:flex; gap:8px; }
+  .suite-dots span{
+    width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.15);
+  }
+  .suite-dots span.active{ background:var(--ignition); box-shadow:0 0 8px var(--ignition); }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:900px){
+    .hero-grid{ grid-template-columns:1fr; }
+    .steps{ grid-template-columns:1fr; }
+    .features{ grid-template-columns:1fr 1fr; }
+    .preview{ grid-template-columns:1fr; }
+    .radar-stage{ max-width:340px; }
+  }
+  @media (max-width:560px){
+    .features{ grid-template-columns:1fr; }
+    header.hero{ padding:56px 0 30px; }
+    section{ padding:56px 0; }
+    .price-strip{ flex-direction:column; align-items:flex-start; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<nav class="top">
+  <div class="wrap">
+    <div class="ghostroute-tag"><span class="dot"></span> Ghostroute for everybody</div>
+    <div class="brand"><span class="mark">🚘</span><span class="name">Mech</span><span class="find">Find</span></div>
+    <a href="#open" class="btn btn-primary btn-sm">Open MechFind</a>
+  </div>
+</nav>
+
+<main>
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">Mechanics &amp; auto repair finder</span>
+        <h1>Broken down on the expressway?<br>Find a vetted mechanic <span class="accent">before your battery does.</span></h1>
+        <p class="lead">MechFind scans verified auto repair shops around your exact location — so a breakdown costs you a phone call, not an afternoon on the shoulder.</p>
+        <div class="hero-ctas">
+          <a href="#open" class="btn btn-primary">Open MechFind</a>
+          <a href="#how" class="btn btn-ghost">See how it works</a>
+        </div>
+        <div class="hero-note"><span class="badge-free">1st try free 🌟</span> After that, a search costs less than the fuel it saves</div>
+      </div>
+
+      <div class="radar-stage" aria-hidden="true">
+        <div class="radar-frame">
+	  <span class="lit">. </span>
+          <div class="radar-label">scanning<span class="lit"> ·</span></div>
+          <div class="radar-rings"><i></i><i></i><i></i><i></i></div>
+          <div class="radar-cross"></div>
+          <div class="radar-sweep"></div>
+          <div class="radar-core"></div>
+
+          <div class="pin" style="top:28%; left:62%;">
+            <div class="dot"></div>
+            <div class="tag" style="animation-delay:0.1s;"><span class="km">1.1 km</span><span class="rating">★4.6</span></div>
+          </div>
+          <div class="pin" style="top:64%; left:74%;">
+            <div class="dot"></div>
+            <div class="tag" style="animation-delay:1.4s;"><span class="km">2.4 km</span><span class="rating">★4.9</span></div>
+          </div>
+          <div class="pin" style="top:70%; left:32%;">
+            <div class="dot"></div>
+            <div class="tag" style="animation-delay:2.8s;"><span class="km">3.0 km</span><span class="rating">★4.4</span></div>
+          </div>
+          <div class="pin" style="top:36%; left:26%;">
+            <div class="dot"></div>
+            <div class="tag" style="animation-delay:4.2s;"><span class="km">4.7 km</span><span class="rating">★4.8</span></div>
+          </div>
+          <div class="pin" style="top:20%; left:44%;">
+            <div class="dot"></div>
+            <div class="tag" style="animation-delay:5.4s;"><span class="km">0.9 km</span><span class="rating">★4.7</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">How it works</span>
+        <h2>Three steps, no app install</h2>
+        <p>MechFind runs right in your browser as part of the Ghostroute suite. Here's the exact flow.</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="num">01</div>
+          <h3>Allow your location</h3>
+          <p>A one-time permission prompt so MechFind can measure real distance to nearby Auto-repair shops — not a rough guess. GPS must be on at the device level, not just in the browser.</p>
+        </div>
+        <div class="step reveal">
+          <div class="num">02</div>
+          <h3>We scan the radius</h3>
+          <p>Verified mechanics and auto repair shops in your area are pulled up and sorted closest-to-you first, measured with ratings from our Oracle Detection Systems, accompanied with other drivers that use MechFind.</p>
+        </div>
+        <div class="step reveal">
+          <div class="num">03</div>
+          <h3>Call or view the mechanic</h3>
+          <p>Tap to call the shop directly, or open their profile for address and directions. No middleman, no waiting on a chat reply.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Why it beats asking around</span>
+        <h2>Built for the moment you're stuck</h2>
+      </div>
+      <div class="features">
+        <div class="feature reveal">
+          <span class="ic">✅</span>
+          <h4>Verified only</h4>
+          <p>Every listing carries a verification badge before it ever reaches your results.</p>
+        </div>
+        <div class="feature reveal">
+          <span class="ic">📍</span>
+          <h4>Distance-sorted</h4>
+          <p>Nearest auto-repair shop first, always measured in exact metres from where your precise location.</p>
+        </div>
+        <div class="feature reveal">
+          <span class="ic">⭐</span>
+          <h4>Real ratings</h4>
+          <p>Scores come from other drivers who've used the shop before — not the mechanics themselves.</p>
+        </div>
+        <div class="feature reveal">
+          <span class="ic">📞</span>
+          <h4>Direct call</h4>
+          <p>One tap dials the shop. No forms, no bidding, no waiting for someone to respond.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <div class="price-strip reveal">
+        <div class="left">
+          <div class="price-tag">$0.2 <small>/ search</small></div>
+          <span class="free-pill">First search free</span>
+        </div>
+        <p>Roughly ₦240 a search — far cheaper than driving in circles looking for a mechanic, or paying a tow truck to guess for you.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="preview">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">What a search looks like</span>
+        <p>not live data.</p>
+      </div>
+      <div class="preview">
+        <div class="mock-card reveal">
+          <div class="mock-top">
+            <h5>MadMax Auto Maintenance </h5>
+            <span class="mock-km">0.4 km</span>
+          </div>
+          <div class="mock-meta">
+            <span class="mock-pill verified">✓ Verified</span>
+            <span class="mock-pill">Car repair &amp; maintenance</span>
+          </div>
+          <div class="mock-addr">Ghost street, sample route, Ghostroute district</div>
+          <div class="mock-rating">★ 4.7</div>
+          <div class="mock-actions">
+            <button class="btn btn-ghost">Call</button>
+            <button class="btn btn-primary">View mechanic →</button>
+          </div>
+        </div>
+        <div class="mock-card reveal">
+          <div class="mock-top">
+            <h5>Ghostroute Car Repair 🧪</h5>
+            <span class="mock-km">1.8 km</span>
+          </div>
+          <div class="mock-meta">
+            <span class="mock-pill verified">✓ Verified</span>
+            <span class="mock-pill">Mechanic</span>
+          </div>
+          <div class="mock-addr">20 Ghost road, opposite landmark Route</div>
+          <div class="mock-rating">★ 4.9</div>
+          <div class="mock-actions">
+            <button class="btn btn-ghost">Call</button>
+            <button class="btn btn-primary">View mechanic →</button>
+          </div>
+        </div>
+        <p class="preview-note">results are sorted live by distance, closest to you — just cause we're cool⚡</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="open">
+    <div class="wrap">
+      <div class="final-cta reveal">
+        <h2>Stop guessing where the nearest mechanic is.</h2>
+        <p>Turn on location, run one search, and see every verified Auto Repair Shop within reach</p>
+        <a href="https://security.ghostroute.icu/mechfind" class="btn btn-primary">Open MechFind</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>A Part of the <strong style="color:var(--text)">Ghostroute ⚡</strong>  — MechFind™</p>
+    <div class="suite-dots" aria-hidden="true">
+      <span class="active"></span><span></span><span></span><span></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Scroll-reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el=>io.observe(el));
+</script>
+
+</body>
+</html>
