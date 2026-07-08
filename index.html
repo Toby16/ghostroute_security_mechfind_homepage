@@ -89,17 +89,19 @@
   }
   nav.top .wrap{
     display:flex; align-items:center; justify-content:space-between;
-    height:68px;
+    height:68px; gap:16px;
   }
   .ghostroute-tag{
     font-family:var(--mono); font-size:11px; letter-spacing:0.12em;
     color:var(--text-faint); text-transform:uppercase;
     display:flex; align-items:center; gap:8px;
+    white-space:nowrap;
   }
   .ghostroute-tag .dot{
     width:6px; height:6px; border-radius:50%; background:var(--ignition);
     box-shadow:0 0 8px var(--ignition);
     animation:pulseDot 2s ease-in-out infinite;
+    flex-shrink:0;
   }
   @keyframes pulseDot{ 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 
@@ -113,6 +115,7 @@
     display:flex; align-items:center; justify-content:center;
     font-size:16px; border:1px solid rgba(255,255,255,0.08);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 14px rgba(0,0,0,0.5);
+    flex-shrink:0;
   }
   .brand span.name{ color:var(--text); }
   .brand span.find{ color:var(--ignition); }
@@ -409,6 +412,23 @@
     header.hero{ padding:56px 0 30px; }
     section{ padding:56px 0; }
     .price-strip{ flex-direction:column; align-items:flex-start; }
+  }
+
+  /* Mobile nav fix: the ghostroute tag, logo mark, and Open MechFind button
+     were all fighting for space in one row and overlapping. On narrow
+     screens we drop the "Ghostroute for everybody" tag (secondary label,
+     not essential), shrink the brand mark/name slightly, and tighten the
+     button so everything fits on one line without collision. */
+  @media (max-width:640px){
+    .ghostroute-tag{ display:none; }
+    nav.top .wrap{ height:60px; padding:0 18px; }
+    .brand{ font-size:19px; gap:8px; }
+    .brand .mark{ width:30px; height:30px; font-size:14px; }
+    .btn-sm{ padding:8px 14px; font-size:13px; }
+  }
+  @media (max-width:360px){
+    .brand{ font-size:17px; }
+    .btn-sm{ padding:7px 12px; font-size:12.5px; }
   }
 
   @media (prefers-reduced-motion: reduce){
